@@ -12,3 +12,28 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  password String
+  name  String
+  imageUrl String?
+  history History[]
+}
+
+model Grid {
+  id Int @id @default(autoincrement())
+  state Json 
+  updatedAt DateTime @updatedAt
+}
+
+model History {
+  id Int @id @default(autoincrement())
+  row           Int        
+  col           Int        
+  character     String     
+  updatedAt     DateTime   @default(now())                
+  user          User      @relation(fields: [userId], references: [id])  
+  userId        Int
+}
