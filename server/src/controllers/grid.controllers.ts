@@ -2,13 +2,23 @@ import { Request, Response } from "express";
 import prismaClient from "../db/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { redisClient } from "../db/redis";
 
 export const getGrid = async(req: Request, res: Response) => {
+    const cachedGrid= await redisClient.get("GRID_STATE")
+    if(cachedGrid){
+        console.log("Cache hit on read")
+        return res.status(200).json(JSON.parse(cachedGrid))
+    }
+
+    console.log("Cache miss on read")
     const grid= await prismaClient.grid.findFirst()
 
     if(!grid) {
         return res.status(404).json({ message: "Grid not found" })
     }
+
+    redisClient.set("GRID_STATE", JSON.stringify(grid.state))
 
     res.status(200).json(grid.state)
 } 
@@ -16,18 +26,19 @@ export const getGrid = async(req: Request, res: Response) => {
 export const upsertGrid = async(req: Request, res: Response) => {
 
     const gridUpsertSchema= z.object({
-        x: z.number(),
-        y: z.number(),
-        val: z.string().min(1).max(1)
+        row: z.number(),
+        col: z.number(),
+        value: z.string().min(1).max(1)
     })
 
     const safeParse= gridUpsertSchema.safeParse(req.body)
 
-    const { x, y, val }: {
-        x: number;
-        y:number;
-        val: string;
+    const { row, col, value }: {
+        row: number;
+        col:number;
+        value: string;
     } = req.body
+
 
     if(!safeParse.success) {
         throw new Error(`Invalid inputs: ${safeParse.error}`)
@@ -46,9 +57,9 @@ export const upsertGrid = async(req: Request, res: Response) => {
             throw new Error('Grid state is null or invalid');
         }
 
-        console.log(gridState);
         
-        gridState[x][y] = val;
+        gridState[row][col] = value;
+        console.log(gridState);
 
         await prismaClient.grid.update({
             where: { id: 1 },

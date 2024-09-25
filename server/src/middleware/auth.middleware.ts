@@ -11,7 +11,7 @@ const authMiddleware = async(req: Request, res: Response, next: NextFunction) =>
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload
-        console.log("decodede: ", decoded)
+        // console.log("decodede: ", decoded)
 
         const user= await prismaClient.user.findUnique({
             where: {

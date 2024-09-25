@@ -1,10 +1,18 @@
 // Signup.js
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import { useAuth } from '../providers/auth.provider';
+import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
-  const { signup } = useAuth();
+  const { signup, user } = useAuth();
   const [userData, setUserData] = useState({ email: '', password: '', name: '' });
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
@@ -13,6 +21,7 @@ const Signup = () => {
   const handleSubmit = async (e: ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
     await signup(userData);
+    navigate('/');
   };
 
   return (
@@ -30,6 +39,14 @@ const Signup = () => {
         name="password"
         placeholder="Password"
         value={userData.password}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="name"
+        name="name"
+        placeholder="Name"
+        value={userData.name}
         onChange={handleChange}
         required
       />

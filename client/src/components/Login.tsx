@@ -1,10 +1,18 @@
 // Login.js
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../providers/auth.provider';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -13,6 +21,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await login(credentials);
+    navigate('/');
   };
 
   return (

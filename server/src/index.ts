@@ -5,7 +5,6 @@ import { app, httpServer } from "./websocket";
 import userRouter from "./routes/user.routes";
 import gridRouter from "./routes/grid.routes";
 
-
 app.use(cors({
     origin: true
 }));
