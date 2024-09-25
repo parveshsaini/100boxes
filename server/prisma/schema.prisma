@@ -36,4 +36,5 @@ model History {
   updatedAt     DateTime   @default(now())                
   user          User      @relation(fields: [userId], references: [id])  
   userId        Int
+  state Json 
 }

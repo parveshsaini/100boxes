@@ -5,6 +5,15 @@ import { app, httpServer } from "./websocket";
 import userRouter from "./routes/user.routes";
 import gridRouter from "./routes/grid.routes";
 
+//cache control
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+});
+
 app.use(cors({
     origin: true
 }));

@@ -57,6 +57,11 @@ const  Home= ()=> {
   const handleSubmit = async () => {
     if (!selectedCell) return; 
 
+    if(!user) {
+      alert("user not logged in")
+      return
+    }
+
     if(!socket) {
         console.log("socket not connected")
         return
@@ -68,7 +73,8 @@ const  Home= ()=> {
     socket.emit("updateGrid", {
         row: selectedCell.row,
         col: selectedCell.col,
-        value: tempValue
+        value: tempValue,
+        user: user
     });
     console.log("emmiting updateGrid", updatedGrid);
 
@@ -105,13 +111,14 @@ const  Home= ()=> {
     <div className="flex flex-col gap-4 space-y-8">
       <h1>Welcome to 100boxes {user?.name}</h1>
       
-      <div className='flex gap-2'></div>
+      <div className='flex gap-2'>
       {onlineUsers.map((user)=> {
-        return <div key={user.id} className='flex gap-1'>
-          <img src={user.imageUrl} alt={user.name} />
+        return <div key={user.id} className='flex gap-1 items-center justify-center border-2 p-3'>
+          <img className='w-10 h-10' src={user.imageUrl} alt={user.name} />
           <h1>{user.name}</h1>
           </div>
       })}
+      </div>
 
       {user && <button onClick={handleLogout}>Logout</button>}
 

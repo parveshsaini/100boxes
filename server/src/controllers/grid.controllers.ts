@@ -23,6 +23,36 @@ export const getGrid = async(req: Request, res: Response) => {
     res.status(200).json(grid.state)
 } 
 
+export const getHistory = async (req: Request, res: Response) => {
+    try {
+      const page: number = parseInt(req.query.page as string) || 1;
+      console.log("page: ", page);
+      
+      if(page<0) {
+        throw new Error("Invalid page number");
+      }
+
+      const skipEntries = (page - 1) * 10;
+
+      const history = await prismaClient.history.findMany({
+        orderBy: {
+          updatedAt: "asc",
+        },
+        skip: skipEntries,
+        take: 10, 
+        include:{
+            user: true
+        }
+      });
+  
+      res.status(200).json(history);
+    } catch (error) {
+      console.error("Error fetching history:", error);
+      res.status(500).json({ error: "Failed to fetch history" });
+    }
+  };
+  
+
 export const upsertGrid = async(req: Request, res: Response) => {
 
     const gridUpsertSchema= z.object({
