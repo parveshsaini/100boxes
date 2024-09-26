@@ -3,6 +3,8 @@ import '../App.css';
 import axios from 'axios';
 import { useAuth } from '../providers/auth.provider';
 import { useSocketContext } from '../providers/socket.provider';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const  Home= ()=> {
   const [grid, setGrid] = useState<string[][]>([]);
@@ -14,6 +16,9 @@ const  Home= ()=> {
 
   const { user, logout } = useAuth();
   const { socket, onlineUsers } = useSocketContext()
+
+  const navigate = useNavigate();
+
 
   console.log("onlineUsers: ", onlineUsers);
 
@@ -38,9 +43,23 @@ const  Home= ()=> {
         setGrid(updatedGrid);
         handleDisable(message.row, message.col);
       });
+
+    socket?.on("rateLimittedBlock", (message: any) => {
+
+        const parsedMessage = JSON.parse(message);
+
+        console.log("parsedMessage", parsedMessage);
+        console.log("parsedMessage.message", parsedMessage.message);
+        console.log("parsedMessage.message.row", parsedMessage.message.row);
+        console.log("parsedMessage.err", parsedMessage.err);
+
+        toast.error(parsedMessage.err);
+        undoDisable(parsedMessage.message.row, parsedMessage.message.col);
+      });
   
     return () => {
         socket?.off("updateGrid");
+        socket?.off("rateLimittedBlock");
     };
   }, [socket])
 
@@ -67,8 +86,8 @@ const  Home= ()=> {
         return
     }
 
-    const updatedGrid = [...grid];
-    updatedGrid[selectedCell.row][selectedCell.col] = tempValue;
+    // const updatedGrid = [...grid];
+    // updatedGrid[selectedCell.row][selectedCell.col] = tempValue;
 
     socket.emit("updateGrid", {
         row: selectedCell.row,
@@ -76,14 +95,12 @@ const  Home= ()=> {
         value: tempValue,
         user: user
     });
-    console.log("emmiting updateGrid", updatedGrid);
+    // console.log("emmiting updateGrid", updatedGrid);
 
-    setGrid(updatedGrid);
+    // setGrid(updatedGrid);
     setSelectedCell(null);
     handleDisable(selectedCell.row, selectedCell.col);
     // await axios.patch(`http://localhost:3000/api/v1/grid/upsert`, {"x": selectedCell.row, "y": selectedCell.col, "val": tempValue});
-
-
   };
 
   const handleDisable = (row: number, col: number) => {
@@ -95,7 +112,13 @@ const  Home= ()=> {
       const updatedDisabledCells = [...disabledCells];
       updatedDisabledCells[row][col] = false;
       setDisabledCells(updatedDisabledCells);
-    }, 10000);
+    }, 20000);
+  }
+
+  const undoDisable = (row: number, col: number) => {
+    const updatedDisabledCells = [...disabledCells];
+    updatedDisabledCells[row][col] = false;
+    setDisabledCells(updatedDisabledCells);
   }
 
   const handleCancel = () => {
@@ -119,8 +142,11 @@ const  Home= ()=> {
           </div>
       })}
       </div>
+      <div className='flex gap-4 items-center'>
+      {user && <button className='border-2 border-blue-500 p-2 rounded-lg' onClick={handleLogout}>Logout</button>}
+      <button className='border-2 border-blue-500 p-2 rounded-lg' onClick={()=>navigate('/history')}>HIstory</button>
 
-      {user && <button onClick={handleLogout}>Logout</button>}
+      </div>
 
       {selectedCell && (
         <div className="flex space-x-4">

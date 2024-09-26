@@ -19,8 +19,9 @@ const io = new Server(httpServer, {
 
 io.on("connection", async (socket) => {
   const connectedUser = socket.handshake.query.user;
+  const socketId = socket.id;
   
-  console.log("user Connected", connectedUser)
+  // console.log("user Connected", connectedUser)
 
   if (connectedUser) {
     await pub.sadd("activeUsers", JSON.stringify(connectedUser)); 
@@ -43,13 +44,32 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("updateGrid", (message) => {
-    // console.log("Message from user", message);
-    pub.publish(
-      "MESSAGES",
-      JSON.stringify({
+    console.log("message received", message)
+
+    let rateLimitFlag =false
+  // check if the block is rate limitted
+    checkRateLimit(message)
+    .then(()=> {
+      pub.publish(
+        "MESSAGES",
+        JSON.stringify({
+          message,
+        })
+      );
+    console.log("grid update published!!!!!!!!!!!!!")
+
+    })
+    .catch((err)=> {
+      io.to(socketId).emit("rateLimittedBlock", JSON.stringify({
         message,
-      })
-    );
+        err: err.message
+      }))
+      console.log("rate limit error", err.message)
+    })
+
+
+
+    
   });
 });
 
@@ -69,7 +89,7 @@ sub.on("message", async (channel, message) => {
 
     //cache miss
     if (!cachedGrid) {
-      console.log("Cache miss on write");
+      // console.log("Cache miss on write");
       const grid= await prismaClient.grid.findFirst();
       cachedGrid = JSON.stringify(grid?.state);
       return;
@@ -134,4 +154,18 @@ async function storeToDB(gridState: string[][], updatedMessage: {
   } catch (error) {
     console.error("Failed to persist grid to db:", error);
   }
+}
+
+const checkRateLimit = async(message: { row: number; col: number; value: string; user: IUser; }) => {
+  const key= `${message.row}-${message.col}`
+
+    const rateLimittedBlock= await redisClient.get(key)
+    
+    if(rateLimittedBlock) {
+      console.log("rate limited block", rateLimittedBlock)
+      throw new Error("Rate limited block")
+    }
+
+    redisClient.setex(key, 20, 1)
+
 }

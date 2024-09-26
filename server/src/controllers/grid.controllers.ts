@@ -36,7 +36,7 @@ export const getHistory = async (req: Request, res: Response) => {
 
       const history = await prismaClient.history.findMany({
         orderBy: {
-          updatedAt: "asc",
+          updatedAt: "desc",
         },
         skip: skipEntries,
         take: 10, 
