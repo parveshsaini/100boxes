@@ -3,6 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { sub, pub, redisClient } from "./db/redis";
 import prismaClient from "./db/prisma";
+import { checkRateLimit, storeToDB } from "./controllers/grid.controllers";
 
 export const app = express();
 export const httpServer = http.createServer(app);
@@ -21,7 +22,7 @@ io.on("connection", async (socket) => {
   const connectedUser = socket.handshake.query.user;
   const socketId = socket.id;
   
-  // console.log("user Connected", connectedUser)
+  console.log("user Connected", connectedUser)
 
   if (connectedUser) {
     await pub.sadd("activeUsers", JSON.stringify(connectedUser)); 
@@ -32,7 +33,6 @@ io.on("connection", async (socket) => {
   }
 
   socket.on("disconnect", async () => {
-    // console.log("A user disconnected from socket");
     if(connectedUser) {
       console.log("user disconnected", connectedUser)
       await pub.srem("activeUsers", JSON.stringify(connectedUser));
@@ -47,7 +47,7 @@ io.on("connection", async (socket) => {
     console.log("message received", message)
 
     let rateLimitFlag =false
-  // check if the block is rate limitted
+    // check if the block is rate limitted
     checkRateLimit(message)
     .then(()=> {
       pub.publish(
@@ -66,10 +66,7 @@ io.on("connection", async (socket) => {
       }))
       console.log("rate limit error", err.message)
     })
-
-
-
-    
+ 
   });
 });
 
@@ -89,23 +86,15 @@ sub.on("message", async (channel, message) => {
 
     //cache miss
     if (!cachedGrid) {
-      // console.log("Cache miss on write");
       const grid= await prismaClient.grid.findFirst();
       cachedGrid = JSON.stringify(grid?.state);
       return;
     }
 
-    // console.log("cachedGrid: ", cachedGrid);
-
     let gridState = cachedGrid ? JSON.parse(cachedGrid) : []; 
-
-    // console.log("gridState: ", gridState);
-
-    // console.log("updatedMessage", updatedMessage);
-
     gridState[updatedMessage.row][updatedMessage.col] = updatedMessage.value;
-    await redisClient.set("GRID_STATE", JSON.stringify(gridState));
 
+    await redisClient.set("GRID_STATE", JSON.stringify(gridState));
 
     io.emit("updateGrid", JSON.parse(message));
 
@@ -115,57 +104,4 @@ sub.on("message", async (channel, message) => {
   }
 });
 
-interface IUser {
-  id: number;
-  email: string;
-  name: string;
-  imageUrl: string;
-}
 
-async function storeToDB(gridState: string[][], updatedMessage: {
-  row: number;
-  col: number;
-  value: string;
-  user: IUser;
-}) {
-  try {
-    
-    await prismaClient.$transaction(async (txn)=> {
-      await txn.grid.update({
-        where: { id: 1 },  
-        data: { state: gridState }
-      });
-      console.log("Grid state persisted to db.");
-
-      await txn.history.create({
-        data: {
-          row: updatedMessage.row,
-          col: updatedMessage.col,
-          character: updatedMessage.value,
-          userId: updatedMessage.user.id,
-          state: gridState
-        }
-      });
-      console.log(`user ${updatedMessage.user.name} updated grid at ${updatedMessage.row}, ${updatedMessage.col} to ${updatedMessage.value}`);
-      console.log("History entry persisted to db.");
-    })
-
-    console.log("transaction successful");
-  } catch (error) {
-    console.error("Failed to persist grid to db:", error);
-  }
-}
-
-const checkRateLimit = async(message: { row: number; col: number; value: string; user: IUser; }) => {
-  const key= `${message.row}-${message.col}`
-
-    const rateLimittedBlock= await redisClient.get(key)
-    
-    if(rateLimittedBlock) {
-      console.log("rate limited block", rateLimittedBlock)
-      throw new Error("Rate limited block")
-    }
-
-    redisClient.setex(key, 20, 1)
-
-}

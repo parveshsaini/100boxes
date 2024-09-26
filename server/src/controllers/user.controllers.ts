@@ -32,7 +32,7 @@ export const signupUser = async (req: Request, res: Response) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
-    const avatarUrl= `https://robohash.org/${name}`
+    const avatarUrl= `https://api.multiavatar.com/${name}.png`
 
     const newUser= await prismaClient.user.create({
         data: {

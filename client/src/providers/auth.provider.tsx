@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: {children: ReactNode}) => {
 
   const getUser= async()=> {
     setLoading(true)
-    const res= await axios.get('http://localhost:3000/api/v1/user/me', {headers: {Authorization: token}});
+    const res= await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/user/me`, {headers: {Authorization: token}});
 
     if(res.data){
         setUser(res.data.user)
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: {children: ReactNode}) => {
 
   const login = async (credentials: ILogin) => {
     setLoading(true)
-    const res = await axios.post('http://localhost:3000/api/v1/user/login', credentials);
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/login`, credentials);
     localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
     setLoading(false)

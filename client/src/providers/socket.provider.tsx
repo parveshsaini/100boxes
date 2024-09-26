@@ -9,7 +9,7 @@ interface ISocketContext {
 
 const SocketContext = createContext<ISocketContext | undefined>(undefined);
 
-const socketURL = "http://localhost:3000";
+const socketURL = import.meta.env.VITE_API_URL;
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
 	const socketRef = useRef<Socket | null>(null);
@@ -27,12 +27,8 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 			socketRef.current = socket;
 
 			socket.on("getOnlineUsers", (users) => {
-				console.log("users: ", users);
-				
 				//@ts-ignore
-
 				const parsedUsers = users.map(user => JSON.parse(user)); 
-				console.log("onlineUsers: ", parsedUsers); 
 				setOnlineUsers(parsedUsers);
 			});
 
