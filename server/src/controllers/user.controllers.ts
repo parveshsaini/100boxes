@@ -18,7 +18,8 @@ export const signupUser = async (req: Request, res: Response) => {
     const safeParse = signupSchema.safeParse(req.body)
 
     if(!safeParse.success) {
-        throw new Error(`Invalid inputs: ${safeParse.error}`)
+        // throw new Error(`Invalid inputs: ${safeParse.error}`)
+        return res.status(400).json({ message: `Invalid inputs: ${safeParse.error}` })
     }
 
     const existingUser= await prismaClient.user.findFirst({
@@ -28,7 +29,9 @@ export const signupUser = async (req: Request, res: Response) => {
     })
 
     if(existingUser) {
-        throw new Error("User already exists")
+        // throw new Error("User already exists")
+        return res.status(400).json({ message: "User already exists" })
+
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -68,7 +71,8 @@ export const loginUser = async(req: Request, res: Response) => {
     const safeParse= loginSchema.safeParse(req.body)
 
     if(!safeParse.success) {
-        throw new Error(`Invalid inputs: ${safeParse.error}`)
+        // throw new Error(`Invalid inputs: ${safeParse.error}`)
+        return res.status(400).json({ message: `Invalid inputs: ${safeParse.error}` })
     }
 
     const user= await prismaClient.user.findFirst({
@@ -78,13 +82,15 @@ export const loginUser = async(req: Request, res: Response) => {
     })
 
     if(!user) {
-        throw new Error("User not found")
+        // throw new Error("User not found")
+        return res.status(404).json({ message: "User not found" })
     }
 
     const isPasswordCorrect= await bcrypt.compare(password, user.password)
 
     if(!isPasswordCorrect) {
-        throw new Error("Invalid password")
+        // throw new Error("Invalid password")
+        return res.status(401).json({ message: "Invalid password" })
     }
 
     const token= jwt.sign({ userId: user.id }, process.env.JWT_SECRET!)

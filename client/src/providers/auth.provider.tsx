@@ -1,6 +1,7 @@
 // AuthContext.js
 import  { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface AuthContextType {
     user: IUser | null;
@@ -57,18 +58,37 @@ export const AuthProvider = ({ children }: {children: ReactNode}) => {
 
   const login = async (credentials: ILogin) => {
     setLoading(true)
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/login`, credentials);
-    localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/login`, credentials);
+      localStorage.setItem('token', res.data.token);
+      setUser(res.data.user);
+    } catch (error) {
+      console.log(error)
+      if(error instanceof Error) {
+        toast.error(error.message);
+      }
+      else{
+        toast.error("Something went wrong");
+      }
+    }
     setLoading(false)
   };
 
 
   const signup = async (creadentials: ISignup) => {
     setLoading(true)
-    const res = await axios.post('http://localhost:3000/api/v1/user/signup', creadentials);
-    localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/signup`, creadentials);
+      localStorage.setItem('token', res.data.token);
+      setUser(res.data.user);
+    } catch (error) {
+      if(error instanceof Error) {
+        toast.error(error.message);
+      }
+      else{
+        toast.error("Something went wrong");
+      }
+    }
     setLoading(false)
   };
 
