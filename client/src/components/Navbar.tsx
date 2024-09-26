@@ -53,11 +53,11 @@ const Navbar = () => {
       </div>
 
       {user ? (
-          <h1 className="text-white tracking-wider md:text-xl text-base mt-8 font-semibold text-center">
+          <h1 className="text-white tracking-wider md:text-xl text-base mt-8 md:mt-0 font-semibold text-center">
             Welcome, {user.name}
           </h1>
         ) : (
-          <h1 className="text-white text-center">
+          <h1 className="text-white text-center mt-8 md:mt-0">
             <span
               className="underline cursor-pointer text-green-400 hover:text-green-500 transition duration-300"
               onClick={() => navigate("/login")}
