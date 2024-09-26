@@ -28,6 +28,6 @@ app.use("/api/v1/user", userRouter)
 
 app.use("/api/v1/grid", gridRouter)
 
-httpServer.listen(3000, () => {
-    console.log("Server is running on port 3000");
+httpServer.listen(process.env.PORT, () => {
+    console.log("Server is running on port ", process.env.PORT);
 });
