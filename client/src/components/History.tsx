@@ -123,7 +123,7 @@ const History = () => {
                     : "border-gray-500"
                 }`}
               >
-                {cell || "?"}
+                {cell}
               </div>
             ))
           )}

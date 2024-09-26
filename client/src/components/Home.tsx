@@ -43,7 +43,7 @@ const Home = () => {
         updatedGrid[message.row][message.col] = message.value;
         setGrid(updatedGrid);
         // console.log("updatedGrid", updatedGrid);
-        toast.success("Update successful 🎉");
+        // toast.success("Update successful 🎉");
         handleDisable(message.row, message.col);
       }
     );

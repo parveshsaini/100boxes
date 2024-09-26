@@ -12,13 +12,15 @@ const Navbar = () => {
     return (
       <nav className="bg-gray-800 p-4 shadow-lg rounded-full md:flex md:justify-between md:items-center">
       <div className="flex justify-between items-center">
-        <h1 className="font-bold text-green-400 md:text-3xl text-xl  tracking-wide flex items-center gap-1">
+        <h1 className="font-bold text-green-400 md:text-3xl text-base  tracking-wide flex items-center gap-1">
           100_B
           <span className="bg-green-500 text-white rounded-md py-1 flex items-center justify-center">
             ☑️
           </span>
           XES
         </h1>
+
+        
     
         <button
           className="text-white md:hidden block"
@@ -49,14 +51,9 @@ const Navbar = () => {
           )}
         </button>
       </div>
-    
-      <div
-        className={`md:flex md:items-center md:space-x-6 space-y-4 md:space-y-0 mt-4 md:mt-0 ${
-          menuOpen ? "block" : "hidden"
-        }`}
-      >
-        {user ? (
-          <h1 className="text-white tracking-wider text-xl font-semibold text-center">
+
+      {user ? (
+          <h1 className="text-white tracking-wider md:text-xl text-base mt-8 font-semibold text-center">
             Welcome, {user.name}
           </h1>
         ) : (
@@ -77,6 +74,13 @@ const Navbar = () => {
             to start playing 🎮
           </h1>
         )}
+    
+      <div
+        className={`md:flex md:items-center md:space-x-6 space-y-4 md:space-y-0 mt-4 md:mt-0 ${
+          menuOpen ? "block" : "hidden"
+        }`}
+      >
+        
     
         <div className="flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
           <button
