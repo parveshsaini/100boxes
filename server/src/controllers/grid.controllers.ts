@@ -4,68 +4,68 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { redisClient } from "../db/redis";
 
-export const getGrid = async(req: Request, res: Response) => {
-    const cachedGrid= await redisClient.get("GRID_STATE")
-    if(cachedGrid){
-        console.log("Cache hit on read")
-        return res.status(200).json(JSON.parse(cachedGrid))
-    }
+export const getGrid = async (req: Request, res: Response) => {
+  const cachedGrid = await redisClient.get("GRID_STATE");
+  if (cachedGrid) {
+    // console.log("Cache hit on read")
+    return res.status(200).json(JSON.parse(cachedGrid));
+  }
 
-    console.log("Cache miss on reading Grid")
-    let grid;
-    grid= await prismaClient.grid.findFirst()
+  // console.log("Cache miss on reading Grid")
+  let grid;
+  grid = await prismaClient.grid.findFirst();
 
-    if(!grid) {
-        grid = await createGrid()
-    }
+  if (!grid) {
+    grid = await createGrid();
+  }
 
-    redisClient.set("GRID_STATE", JSON.stringify(grid.state))
+  redisClient.set("GRID_STATE", JSON.stringify(grid.state));
 
-    res.status(200).json(grid.state)
-} 
+  res.status(200).json(grid.state);
+};
 
 async function createGrid() {
-  const defaultGridState = Array(10).fill(Array(10).fill("")); 
+  const defaultGridState = Array(10).fill(Array(10).fill(""));
 
   const newGrid = await prismaClient.grid.create({
     data: {
-      state: defaultGridState, 
+      state: defaultGridState,
     },
   });
 
-  console.log("Created a new Grid:", newGrid);
+  // console.log("Created a new Grid:", newGrid);
 
   return newGrid;
 }
 
 export const getHistory = async (req: Request, res: Response) => {
-    try {
-      const page: number = parseInt(req.query.page as string) || 1;
-      console.log("page: ", page);
-      
-      if(page<=0) {
-        throw new Error("Invalid page number");
-      }
+  try {
+    const page: number = parseInt(req.query.page as string) || 1;
+    // console.log("page: ", page);
 
-      const skipEntries = (page - 1) * 10;
-
-      const history = await prismaClient.history.findMany({
-        orderBy: {
-          updatedAt: "desc",
-        },
-        skip: skipEntries,
-        take: 10, 
-        include:{
-            user: true
-        }
-      });
-  
-      res.status(200).json(history);
-    } catch (error) {
-      console.error("Error fetching history:", error);
-      res.status(500).json({ error: "Failed to fetch history" });
+    if (page <= 0) {
+      throw new Error("Invalid page number");
     }
-  };
+
+    const skipEntries = (page - 1) * 10;
+
+    const history = await prismaClient.history.findMany({
+      orderBy: {
+        updatedAt: "desc",
+      },
+      skip: skipEntries,
+      take: 10,
+      include: {
+        user: true,
+      },
+    });
+
+    res.status(200).json(history);
+  } catch (error) {
+    console.error("Error fetching history:", error);
+    res.status(500).json({ error: "Failed to fetch history" });
+  }
+};
 
 interface IUser {
   id: number;
@@ -74,25 +74,27 @@ interface IUser {
   imageUrl: string;
 }
 
-export const storeToDB = async(gridState: string[][], updatedMessage: {
-  row: number;
-  col: number;
-  value: string;
-  user: IUser;
-})=> {
+export const storeToDB = async (
+  gridState: string[][],
+  updatedMessage: {
+    row: number;
+    col: number;
+    value: string;
+    user: IUser;
+  }
+) => {
   try {
-    
-    await prismaClient.$transaction(async (txn)=> {
+    await prismaClient.$transaction(async (txn) => {
       const grid = await prismaClient.grid.findFirst();
-      if(!grid) {
+      if (!grid) {
         throw new Error("Grid not found while storing to db");
       }
-      await txn.grid.update(
-        { where: { id: grid.id }, 
-          data: { state: gridState } 
-        });
-       
-      console.log("Grid state persisted to db.");
+      await txn.grid.update({
+        where: { id: grid.id },
+        data: { state: gridState },
+      });
+
+      // console.log("Grid state persisted to db.");
 
       await txn.history.create({
         data: {
@@ -100,33 +102,37 @@ export const storeToDB = async(gridState: string[][], updatedMessage: {
           col: updatedMessage.col,
           character: updatedMessage.value,
           userId: updatedMessage.user.id,
-          state: gridState
-        }
+          state: gridState,
+        },
       });
-      console.log(`user ${updatedMessage.user.name} updated grid at ${updatedMessage.row}, ${updatedMessage.col} to ${updatedMessage.value}`);
-      console.log("History entry persisted to db.");
-    })
+      // console.log(`user ${updatedMessage.user.name} updated grid at ${updatedMessage.row}, ${updatedMessage.col} to ${updatedMessage.value}`);
+      // console.log("History entry persisted to db.");
+    });
 
-    console.log("Transaction successful");
+    // console.log("Transaction successful");
   } catch (error) {
-    console.error("Failed to persist grid to db:", error);
+    // console.error("Failed to persist grid to db:", error);
   }
-}
+};
 
-export const checkRateLimit = async(message: { row: number; col: number; value: string; user: IUser; }) => {
-  const key= `${message.row}-${message.col}`
+export const checkRateLimit = async (message: {
+  row: number;
+  col: number;
+  value: string;
+  user: IUser;
+}) => {
+  const key = `${message.row}-${message.col}`;
 
-    const rateLimittedBlock= await redisClient.get(key)
-    
-    if(rateLimittedBlock) {
-      console.log("rate limited block", rateLimittedBlock)
-      throw new Error("This block is freezed for 20 seconds!")
-    }
+  const rateLimittedBlock = await redisClient.get(key);
 
-    redisClient.setex(key, 20, 1)
+  if (rateLimittedBlock) {
+    // console.log("rate limited block", rateLimittedBlock)
+    throw new Error("This block is freezed for 20 seconds!");
+  }
 
-}
-  
+  redisClient.setex(key, 20, 1);
+};
+
 // Upsert route is deprecated as communication is now done via websockets
 
 // export const upsertGrid = async(req: Request, res: Response) => {
@@ -145,7 +151,6 @@ export const checkRateLimit = async(message: { row: number; col: number; value: 
 //         value: string;
 //     } = req.body
 
-
 //     if(!safeParse.success) {
 //         throw new Error(`Invalid inputs: ${safeParse.error}`)
 //     }
@@ -155,7 +160,6 @@ export const checkRateLimit = async(message: { row: number; col: number; value: 
 //         if (!gridRecord) {
 //             return res.status(404).json({ message: 'Grid not found' });
 //         }
-        
 
 //         const gridState = gridRecord.state as string[][] | null;
 
@@ -163,13 +167,12 @@ export const checkRateLimit = async(message: { row: number; col: number; value: 
 //             throw new Error('Grid state is null or invalid');
 //         }
 
-        
 //         gridState[row][col] = value;
 //         console.log(gridState);
 
 //         await prismaClient.grid.update({
 //             where: { id: 1 },
-//             data: {state: gridState as unknown as Prisma.JsonObject} 
+//             data: {state: gridState as unknown as Prisma.JsonObject}
 //         });
 
 //         res.status(200).json({ message: 'Block updated successfully', gridState });

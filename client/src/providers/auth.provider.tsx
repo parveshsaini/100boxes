@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: {children: ReactNode}) => {
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
     } catch (error) {
-      console.log(error)
+      // console.log(error)
       if(error instanceof Error) {
         toast.error(error.message);
       }

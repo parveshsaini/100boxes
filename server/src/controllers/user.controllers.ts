@@ -1,130 +1,129 @@
-import z from "zod"
-import jwt from "jsonwebtoken"
-import { Request, Response } from "express"
-import prismaClient from "../db/prisma"
-import bcrypt from "bcrypt"
-
+import z from "zod";
+import jwt from "jsonwebtoken";
+import { Request, Response } from "express";
+import prismaClient from "../db/prisma";
+import bcrypt from "bcrypt";
 
 export const signupUser = async (req: Request, res: Response) => {
+  const signupSchema = z.object({
+    email: z.string().email(),
+    name: z.string(),
+    password: z.string(),
+  });
 
-    const signupSchema = z.object({
-        email: z.string().email(),
-        name: z.string(),
-        password: z.string()
-    })
+  const { email, password, name } = req.body;
 
-    const { email, password, name } = req.body
+  const safeParse = signupSchema.safeParse(req.body);
 
-    const safeParse = signupSchema.safeParse(req.body)
+  if (!safeParse.success) {
+    // throw new Error(`Invalid inputs: ${safeParse.error}`)
+    return res
+      .status(400)
+      .json({ message: `Invalid inputs: ${safeParse.error}` });
+  }
 
-    if(!safeParse.success) {
-        // throw new Error(`Invalid inputs: ${safeParse.error}`)
-        return res.status(400).json({ message: `Invalid inputs: ${safeParse.error}` })
-    }
+  const existingUser = await prismaClient.user.findFirst({
+    where: {
+      email,
+    },
+  });
 
-    const existingUser= await prismaClient.user.findFirst({
-        where: {
-            email
-        }
-    })
+  if (existingUser) {
+    // throw new Error("User already exists")
+    return res.status(400).json({ message: "User already exists" });
+  }
 
-    if(existingUser) {
-        // throw new Error("User already exists")
-        return res.status(400).json({ message: "User already exists" })
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const avatarUrl = `https://api.multiavatar.com/${name}.png`;
 
-    }
+  const newUser = await prismaClient.user.create({
+    data: {
+      email,
+      name,
+      password: hashedPassword,
+      imageUrl: avatarUrl,
+    },
+  });
 
-    const hashedPassword = await bcrypt.hash(password, 10)
-    const avatarUrl= `https://api.multiavatar.com/${name}.png`
+  const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET!);
 
-    const newUser= await prismaClient.user.create({
-        data: {
-            email,
-            name,
-            password: hashedPassword,
-            imageUrl: avatarUrl,
-        }
-    })
+  res.status(201).json({
+    token,
+    user: {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      imageUrl: newUser.imageUrl,
+    },
+  });
+};
 
-    const token= jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET!)
+export const loginUser = async (req: Request, res: Response) => {
+  const loginSchema = z.object({
+    email: z.string().email(),
+    password: z.string(),
+  });
 
-    res.status(201).json({
-        token,
-        user: {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-            imageUrl: newUser.imageUrl
-        }
-    })
-}
+  const { email, password } = req.body;
 
-export const loginUser = async(req: Request, res: Response) => {
-    
-    const loginSchema= z.object({
-        email: z.string().email(),
-        password: z.string()
-    })
+  const safeParse = loginSchema.safeParse(req.body);
 
-    const { email, password } = req.body
+  if (!safeParse.success) {
+    // throw new Error(`Invalid inputs: ${safeParse.error}`)
+    return res
+      .status(400)
+      .json({ message: `Invalid inputs: ${safeParse.error}` });
+  }
 
-    const safeParse= loginSchema.safeParse(req.body)
+  const user = await prismaClient.user.findFirst({
+    where: {
+      email,
+    },
+  });
 
-    if(!safeParse.success) {
-        // throw new Error(`Invalid inputs: ${safeParse.error}`)
-        return res.status(400).json({ message: `Invalid inputs: ${safeParse.error}` })
-    }
+  if (!user) {
+    // throw new Error("User not found")
+    return res.status(404).json({ message: "User not found" });
+  }
 
-    const user= await prismaClient.user.findFirst({
-        where: {
-            email
-        }
-    })
+  const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
-    if(!user) {
-        // throw new Error("User not found")
-        return res.status(404).json({ message: "User not found" })
-    }
+  if (!isPasswordCorrect) {
+    // throw new Error("Invalid password")
+    return res.status(401).json({ message: "Invalid password" });
+  }
 
-    const isPasswordCorrect= await bcrypt.compare(password, user.password)
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!);
 
-    if(!isPasswordCorrect) {
-        // throw new Error("Invalid password")
-        return res.status(401).json({ message: "Invalid password" })
-    }
-
-    const token= jwt.sign({ userId: user.id }, process.env.JWT_SECRET!)
-
-    res.status(200).json({
-        token,
-        user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            imageUrl: user.imageUrl
-        }
-    })
-}
+  res.status(200).json({
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      imageUrl: user.imageUrl,
+    },
+  });
+};
 
 export const getUser = async (req: Request, res: Response) => {
-    const user= await prismaClient.user.findFirst({
-        where: {
-            //@ts-ignore
-            id: req.userId
-        }
-    })
+  const user = await prismaClient.user.findFirst({
+    where: {
+      //@ts-ignore
+      id: req.userId,
+    },
+  });
 
-    if(!user) {
-        return res.status(404).json({ message: "User not found" })
-    }
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
 
-    res.status(200).json({
-        user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            imageUrl: user.imageUrl
-        }
-    })
-    
-}
+  res.status(200).json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      imageUrl: user.imageUrl,
+    },
+  });
+};

@@ -13,7 +13,8 @@ sub.subscribe("ONLINE_USERS");
 
 const io = new Server(httpServer, {
   cors: {
-    origin: true,
+    origin: [process.env.CLIENT_URL!],
+    credentials: true,
     methods: ["GET", "POST"],
   },
 });
@@ -22,7 +23,7 @@ io.on("connection", async (socket) => {
   const connectedUser = socket.handshake.query.user;
   const socketId = socket.id;
   
-  console.log("user Connected", connectedUser)
+  // console.log("user Connected", connectedUser)
 
   if (connectedUser) {
     await pub.sadd("activeUsers", JSON.stringify(connectedUser)); 
@@ -34,7 +35,7 @@ io.on("connection", async (socket) => {
 
   socket.on("disconnect", async () => {
     if(connectedUser) {
-      console.log("user disconnected", connectedUser)
+      // console.log("user disconnected", connectedUser)
       await pub.srem("activeUsers", JSON.stringify(connectedUser));
       const onlineUsers = await pub.smembers("activeUsers"); 
       const parsedUsers = onlineUsers.map(user => JSON.parse(user)); 
@@ -44,7 +45,7 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("updateGrid", (message) => {
-    console.log("message received", message)
+    // console.log("message received", message)
 
     let rateLimitFlag =false
     // check if the block is rate limitted
@@ -56,7 +57,7 @@ io.on("connection", async (socket) => {
           message,
         })
       );
-    console.log("grid update published!!!!!!!!!!!!!")
+    // console.log("grid update published!!!!!!!!!!!!!")
 
     })
     .catch((err)=> {
@@ -64,7 +65,7 @@ io.on("connection", async (socket) => {
         message,
         err: err.message
       }))
-      console.log("rate limit error", err.message)
+      // console.log("rate limit error", err.message)
     })
  
   });
