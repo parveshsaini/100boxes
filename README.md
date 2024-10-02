@@ -1,4 +1,4 @@
-# 100Boxes - Assignment project for Gamitar
+# 100Boxes
 
 ### Live Here: https://gamitar.parveshsaini.tech
 
@@ -50,7 +50,7 @@ docker-compose up
 ```
 4. **Migrate Prisma Schema**  
 ```bash
-pnpm dlx prisma migrate dev --init_schema
+pnpm dlx prisma migrate dev --name init_schema
 pnpm dlx prisma generate
 ```
 5. **Start Backend**
